@@ -1,0 +1,80 @@
+---
+title: "Harvard Large Department Enrollments"
+author: "Beau Meche"
+date: "April 9, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(knitr)
+library(readxl)
+library(readr)
+library(ggplot2)
+library(viridis)
+library(ggridges)
+library(lubridate)
+```
+
+```{r enrollments, echo = FALSE, results = FALSE}
+x <- read_excel("ps_3_enrollment.xlsx", skip = 3) %>%
+  #cleaning variables so that the data is the focus   and not the syntax   of the given names
+  clean_names() %>%
+  
+  # filtering for data with only course codes cuts    out information      that we are not interested in
+  filter(!is.na(course_section_code)) %>%
+  
+  # the percentage of undergraduate students needs to be a majority as well
+  # as equate to a substantial sum of participants
+  filter(u_grad/total > .5 & u_grad > 5)
+
+  # taking the gross type of data that we are interested in and
+  # arranging it in terms of the amount of students to get the 9th
+  # highest course
+
+
+  # here, I only care about one department, so        isolating it and     summing all the undergrads who     study the infamously nicknamed        courses should       suffice
+snakes <- x %>% 
+  filter(course_department == "Economics") %>%
+  summarize(snakes = sum(u_grad))
+
+#Below, I use inline code to input the calculations/ locations that I have described above. I assigned each chunk that is relevant to each query to a separate variable name so that the inline code is not clunky and ugly
+```
+
+
+```{r echo = FALSE}
+
+# much of the formatting below is repeated. Otherwise, I first selected the two data variables that were relevant to the graph then sifted out the courses that I was interested in comparing. 
+x %>%
+  select(course_department, u_grad) %>%
+  filter(course_department %in% c("Computer Science", "Economics",
+                                  "Expository Writing", "Government",
+                                  "Mathematics", "Statistics")) %>%
+  
+  # below is a relatively standard Ridge plot, note the bandwidth: ggplot
+  # automatically suggested the '0.16' bandwidth and I did not adjust it
+  
+  ggplot(mapping = aes(x = u_grad, y = course_department)) + 
+  
+  # remember the '..x..' call, it gives a nice tapered color fill; also remove
+  # the color scale on the side
+  
+  geom_density_ridges_gradient(aes(fill = ..x..), bandwidth = 0.16,
+                               show.legend = FALSE)+ 
+  scale_x_log10() +
+  
+  # this library gives the nice color palate
+  
+    scale_fill_viridis(option = "C") +
+  
+  # unlabeled data is useless data
+  
+  labs(title = "Course Enrollments Spring 2019",
+       subtitle = "Departments vary in their typical class sizes",
+       caption = "Source: Harvard Registrar") +
+  xlab("Class Size") +
+  ylab(NULL)
+  
+```
